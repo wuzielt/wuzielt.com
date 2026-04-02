@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>wuzielt</title>
+    <meta name="description" content="wuzielt — live on Twitch">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,300;0,400;0,600;0,700&family=Anybody:wght@900&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --amber: #f0a030;
+            --amber-dim: rgba(240, 160, 48, 0.1);
+            --amber-glow: rgba(240, 160, 48, 0.4);
+            --red: #e84040;
+            --bg: #0b0b0e;
+            --surface: rgba(255, 255, 255, 0.03);
+            --surface-solid: #111114;
+            --border: rgba(255, 255, 255, 0.06);
+            --text: #d8d4cf;
+            --text-dim: rgba(255, 255, 255, 0.3);
+            --text-faint: rgba(255, 255, 255, 0.12);
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Chakra Petch', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* ═══════════════════════════════════
+           BACKGROUND — layered depth
+           ═══════════════════════════════════ */
+
+        .bg {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        /* Noise texture overlay */
+        .bg::before {
+            content: '';
+            position: absolute;
+            inset: -50%;
+            width: 200%;
+            height: 200%;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+            background-size: 256px 256px;
+            opacity: 0.6;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* Big ambient gradient blobs */
+        .bg-blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.5;
+            animation: drift 25s ease-in-out infinite alternate;
+        }
+
+        .bg-blob:nth-child(1) {
+            width: 600px; height: 600px;
+            background: rgba(240, 160, 48, 0.06);
+            top: -10%; left: -5%;
+        }
+
+        .bg-blob:nth-child(2) {
+            width: 500px; height: 500px;
+            background: rgba(232, 64, 64, 0.04);
+            bottom: -15%; right: -10%;
+            animation-delay: -8s;
+            animation-direction: alternate-reverse;
+        }
+
+        .bg-blob:nth-child(3) {
+            width: 400px; height: 400px;
+            background: rgba(100, 60, 200, 0.03);
+            top: 40%; left: 50%;
+            animation-delay: -15s;
+        }
+
+        @keyframes drift {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(40px, -30px) scale(1.1); }
+        }
+
+        /* Subtle diagonal lines */
+        .bg-lines {
+            position: absolute;
+            inset: 0;
+            background: repeating-linear-gradient(
+                -45deg,
+                transparent,
+                transparent 80px,
+                rgba(255, 255, 255, 0.008) 80px,
+                rgba(255, 255, 255, 0.008) 81px
+            );
+            z-index: 2;
+        }
+
+        /* ═══════════════════════════════════
+           CONTENT
+           ═══════════════════════════════════ */
+
+        .content {
+            position: relative;
+            z-index: 10;
+        }
+
+        /* ── NAV ── */
+        .nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.25rem 2.5rem;
+        }
+
+        .nav-motto {
+            font-size: 0.75rem;
+            font-weight: 300;
+            font-style: italic;
+            color: var(--amber);
+            opacity: 0.6;
+            letter-spacing: 0.05em;
+            text-shadow: 0 0 20px rgba(240, 160, 48, 0.15);
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            color: var(--text-dim);
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover {
+            background: var(--amber-dim);
+            color: var(--amber);
+        }
+
+        .nav-link svg {
+            width: 18px;
+            height: 18px;
+            fill: currentColor;
+        }
+
+        /* ── HERO ── */
+        .hero {
+            padding: 2rem 2.5rem 1.5rem;
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 2rem;
+        }
+
+        .hero-text h1 {
+            font-family: 'Anybody', sans-serif;
+            font-weight: 900;
+            font-size: clamp(3.5rem, 8vw, 6.5rem);
+            text-transform: uppercase;
+            line-height: 0.85;
+            letter-spacing: -0.02em;
+            color: #fff;
+            position: relative;
+        }
+
+        .hero-text h1 span {
+            display: block;
+            background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.5) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-sub {
+            margin-top: 0.75rem;
+            font-size: 0.85rem;
+            font-weight: 300;
+            color: var(--text-dim);
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+        }
+
+        .hero-sub strong {
+            color: var(--amber);
+            font-weight: 600;
+        }
+
+        .hero-right {
+            text-align: right;
+            flex-shrink: 0;
+        }
+
+        .motto-text {
+            font-size: 1.1rem;
+            font-weight: 300;
+            font-style: italic;
+            color: var(--amber);
+            opacity: 0.7;
+            text-shadow: 0 0 30px rgba(240, 160, 48, 0.2);
+        }
+
+        .bio-text {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            margin-top: 0.3rem;
+        }
+
+        /* ── GAME TICKER ── */
+        .ticker {
+            padding: 0 2.5rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .ticker-tag {
+            font-size: 0.6rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            padding: 0.35rem 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 2px;
+            color: var(--text-dim);
+            background: var(--surface);
+            transition: all 0.3s;
+            cursor: default;
+            text-decoration: none;
+        }
+
+        a.ticker-tag {
+            cursor: pointer;
+        }
+
+        .ticker-tag:hover {
+            border-color: var(--amber);
+            color: var(--amber);
+            background: var(--amber-dim);
+        }
+
+        .ticker-tag.rip {
+            text-decoration: line-through;
+            opacity: 0.5;
+        }
+
+        .ticker-tag.rip:hover::after {
+            content: ' rip. summit is still in the pit';
+            text-decoration: none;
+            opacity: 0.7;
+            font-style: italic;
+        }
+
+        /* ── STREAM SECTION ── */
+        .stream-section {
+            padding: 0 2.5rem 2rem;
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 0;
+            max-width: 1400px;
+        }
+
+        .player-wrap {
+            position: relative;
+            background: #000;
+            border: 1px solid var(--border);
+            border-right: none;
+            border-radius: 4px 0 0 4px;
+            overflow: hidden;
+            aspect-ratio: 16 / 9;
+        }
+
+        /* Top edge glow */
+        .player-wrap::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--amber), transparent);
+            opacity: 0.4;
+            z-index: 2;
+        }
+
+        .player-wrap iframe {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .chat-wrap {
+            background: var(--surface-solid);
+            border: 1px solid var(--border);
+            border-radius: 0 4px 4px 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 0.75rem;
+            height: 36px;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .chat-bar span {
+            font-size: 0.6rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-dim);
+        }
+
+        .chat-btn {
+            background: none;
+            border: none;
+            color: var(--text-dim);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            transition: all 0.2s;
+            font-family: inherit;
+            font-size: 0.55rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            gap: 0.3rem;
+        }
+
+        .chat-btn:hover {
+            color: var(--amber);
+        }
+
+        .chat-btn svg {
+            width: 12px;
+            height: 12px;
+            fill: currentColor;
+        }
+
+        .chat-body {
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .chat-body iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* ── STATS / BOTTOM ── */
+        .bottom-section {
+            padding: 2rem 2.5rem 3rem;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 2rem;
+        }
+
+        .stat-row {
+            display: flex;
+            gap: 2.5rem;
+        }
+
+        .stat {
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+        }
+
+        .stat-value {
+            font-family: 'Anybody', sans-serif;
+            font-weight: 900;
+            font-size: 1.6rem;
+            color: #fff;
+        }
+
+        .stat-label {
+            font-size: 0.6rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--text-dim);
+        }
+
+        .bottom-quote {
+            max-width: 300px;
+            text-align: right;
+        }
+
+        .bottom-quote p {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            font-style: italic;
+            line-height: 1.5;
+        }
+
+        .bottom-quote .attr {
+            font-style: normal;
+            font-size: 0.65rem;
+            color: var(--text-faint);
+            margin-top: 0.3rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        /* ── FOOTER ── */
+        .footer {
+            padding: 1rem 2.5rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .footer-left {
+            font-size: 0.6rem;
+            color: var(--text-faint);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .footer-right {
+            display: flex;
+            gap: 1.5rem;
+        }
+
+        .footer-link {
+            font-size: 0.6rem;
+            color: var(--text-dim);
+            text-decoration: none;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            transition: color 0.2s;
+        }
+
+        .footer-link:hover {
+            color: var(--amber);
+        }
+
+        /* ═══════════════════════════════════
+           RESPONSIVE
+           ═══════════════════════════════════ */
+
+        @media (max-width: 1024px) {
+            .stream-section {
+                grid-template-columns: 1fr;
+                gap: 0;
+            }
+
+            .player-wrap {
+                border-right: 1px solid var(--border);
+                border-radius: 4px 4px 0 0;
+            }
+
+            .chat-wrap {
+                border-radius: 0 0 4px 4px;
+                height: 400px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav { padding: 1rem 1.25rem; }
+            .hero { padding: 1.5rem 1.25rem 1rem; flex-direction: column; align-items: flex-start; }
+            .hero-right { text-align: left; }
+            .ticker { padding: 0 1.25rem; margin-bottom: 1rem; }
+            .stream-section { padding: 0 1.25rem 1.5rem; }
+            .bottom-section { padding: 1.5rem 1.25rem 2rem; flex-direction: column; }
+            .bottom-quote { text-align: left; }
+            .footer { padding: 1rem 1.25rem; }
+            .stat-row { gap: 1.5rem; }
+        }
+
+        @media (max-width: 480px) {
+            .hero-text h1 { font-size: 3rem; }
+            .chat-wrap { height: 300px; }
+            .stat-value { font-size: 1.2rem; }
+            .footer-right { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="bg">
+    <div class="bg-blob"></div>
+    <div class="bg-blob"></div>
+    <div class="bg-blob"></div>
+    <div class="bg-lines"></div>
+</div>
+
+<div class="content">
+
+    <!-- Nav -->
+    <nav class="nav">
+        <div class="nav-motto">choose happiness</div>
+        <div class="nav-links">
+            <a href="https://twitch.tv/wuzielt" target="_blank" rel="noopener" class="nav-link" title="Twitch">
+                <svg viewBox="0 0 24 24"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z"/></svg>
+            </a>
+            <a href="https://x.com/wuzielt" target="_blank" rel="noopener" class="nav-link" title="X">
+                <svg viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+            </a>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <header class="hero">
+        <div class="hero-text">
+            <h1><span>WUZIELT</span></h1>
+            <p class="hero-sub">California <strong>//</strong> Twitch Affiliate <strong>//</strong> est. 2012</p>
+        </div>
+        <div class="hero-right">
+            <div class="bio-text">"I'm a boomer and I play games."</div>
+        </div>
+    </header>
+
+    <!-- Game Tags -->
+    <div class="ticker">
+        <a href="https://cod.tracker.gg/cold-war/profile/atvi/wuzielt/mp" target="_blank" rel="noopener" class="ticker-tag">Call of Duty</a>
+        <a href="https://halotracker.com/halo-infinite/profile/xbl/wuzielt/overview" target="_blank" rel="noopener" class="ticker-tag">Halo Infinite</a>
+        <a href="https://tracker.gg/valorant/profile/riot/wuzielt%231/overview" target="_blank" rel="noopener" class="ticker-tag">Valorant</a>
+        <a href="https://tracker.gg/rocket-league/profile/epic/wuzielt/overview" target="_blank" rel="noopener" class="ticker-tag">Rocket League</a>
+        <span class="ticker-tag rip" title="summit1g is still in the pit">H1Z1</span>
+    </div>
+
+    <!-- Stream + Chat -->
+    <section class="stream-section">
+        <div class="player-wrap">
+            <iframe
+                src="https://player.twitch.tv/?channel=wuzielt&parent=wuzielt.com&parent=wuzielt.pages.dev&parent=localhost&muted=false&autoplay=true"
+                allowfullscreen>
+            </iframe>
+        </div>
+        <div class="chat-wrap" id="chatWrap">
+            <div class="chat-bar">
+                <span>Stream Chat</span>
+                <button class="chat-btn" id="chatToggle" title="Press C to toggle">
+                    <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                    Hide
+                </button>
+            </div>
+            <div class="chat-body">
+                <iframe
+                    src="https://www.twitch.tv/embed/wuzielt/chat?parent=wuzielt.com&parent=wuzielt.pages.dev&parent=localhost&darkpopout"
+                    allowfullscreen>
+                </iframe>
+            </div>
+        </div>
+    </section>
+
+    <!-- Bottom Stats -->
+    <section class="bottom-section">
+        <div class="stat-row">
+            <div class="stat">
+                <div class="stat-value">4,872</div>
+                <div class="stat-label">Hours Streamed</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value">1,990</div>
+                <div class="stat-label">Total Streams</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value">2012</div>
+                <div class="stat-label">Streaming Since</div>
+            </div>
+        </div>
+        <div class="bottom-quote">
+            <p>Survived H1Z1 biofuel bombs. Watched summit1g fall into the pit. Still here, still fragging, still choosing happiness.</p>
+            <div class="attr">— streaming since 2012</div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-left">&copy; 2026 wuzielt</div>
+        <div class="footer-right">
+            <a href="https://twitch.tv/wuzielt" target="_blank" rel="noopener" class="footer-link">Twitch</a>
+            <a href="https://x.com/wuzielt" target="_blank" rel="noopener" class="footer-link">Twitter</a>
+        </div>
+    </footer>
+
+</div>
+
+<script>
+    // Chat toggle
+    const chatWrap = document.getElementById('chatWrap');
+    const chatToggle = document.getElementById('chatToggle');
+    let chatHidden = false;
+
+    chatToggle.addEventListener('click', () => {
+        chatHidden = !chatHidden;
+        chatWrap.style.display = chatHidden ? 'none' : '';
+        chatToggle.textContent = chatHidden ? 'Show Chat' : 'Hide';
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'c' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+            const tag = document.activeElement.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'IFRAME') return;
+            chatToggle.click();
+        }
+    });
+</script>
+
+</body>
+</html>

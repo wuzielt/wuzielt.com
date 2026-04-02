@@ -1,0 +1,5 @@
+.playwright-mcp/
+.wrangler/
+*.png
+*.jpeg
+*.jpg
